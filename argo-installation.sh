@@ -3,11 +3,7 @@
 ARGO_WORKFLOWS_VERSION='v3.5.4'
 kubectl config use-context minikube
 kubectl create namespace argo
-
 kubectl apply -n argo -f "https://github.com/argoproj/argo-workflows/releases/download/${ARGO_WORKFLOWS_VERSION}/install.yaml"
-
-# kubectl apply -n argo -f "https://github.com/argoproj/argo-workflows/releases/download/${ARGO_WORKFLOWS_VERSION}/quick-start-minimal.yaml"
-
 kubectl patch deployment \
   argo-server \
   --namespace argo \
