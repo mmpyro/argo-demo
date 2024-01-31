@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: multi-source-sensor
+  namespace: {{ template "helper.NAMESPACE" .}}
+spec:
+  dependencies:
+{{- range $value:= .Values.sensor.dependencies }}
+  - eventName: example
+    eventSourceName: {{ $value.eventSourceName }}
+    name: "{{ $value.eventSourceName }}-dep"
+{{- end }}
+  template:
+    serviceAccountName: operate-workflow-sa
+  triggers:
+{{- range $value:= .Values.sensor.dependencies }}  
+  - template:
+      conditions: "{{ $value.eventSourceName }}-dep"
+      name: "{{ $value.eventSourceName }}-workflow-trigger"
+      k8s:
+        operation: create
+        parameters:   
+        {{- range $item := $value.parameters }}
+        - src:
+            dependencyName: {{ $value.eventSourceName }}-dep
+            dataKey: {{ $item.src.dataKey }}
+          dest: {{ $item.dest }}
+        {{- end }}
+        source:
+          resource:
+            apiVersion: argoproj.io/v1alpha1
+            kind: Workflow
+            metadata:
+              generateName: "{{ $value.eventSourceName }}-"
+            spec:
+              arguments:
+                parameters:
+                - name: message
+                  value: hello world
+                - name: delay
+                  value: "10"
+              workflowTemplateRef:
+                name: workflow-template-submittable
+{{ end }}

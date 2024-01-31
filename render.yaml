@@ -1,0 +1,152 @@
+apiVersion: argoproj.io/v1alpha1
+kind: EventSource
+metadata:
+  name: webhook
+  namespace: argo-events
+spec:
+  service:
+    ports:
+    - port: 12000
+      targetPort: 12000
+  webhook:
+    example:
+      endpoint: /example
+      method: POST
+      port: "12000"
+      url: ""
+---
+
+apiVersion: argoproj.io/v1alpha1
+kind: EventSource
+metadata:
+  name: calendar
+  namespace: argo-events
+spec:
+  calendar:
+    example:
+      interval: 30m
+      metadata:
+        message: "hello MM"
+        delay: "15"
+---
+
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: multi-source-sensor
+  namespace: argo-events
+spec:
+  dependencies:
+  - eventName: example
+    eventSourceName: webhook
+    name: "webhook-dep"
+  - eventName: example
+    eventSourceName: calendar
+    name: "calendar-dep"
+  template:
+    serviceAccountName: operate-workflow-sa
+  triggers:  
+  - template:
+      conditions: "webhook-dep"
+      name: "webhook-workflow-trigger"
+      k8s:
+        operation: create
+        parameters:
+        - src:
+            dependencyName: webhook-dep
+            dataKey: body.message
+          dest: spec.arguments.parameters.0.value
+        - src:
+            dependencyName: webhook-dep
+            dataKey: body.delay
+          dest: spec.arguments.parameters.1.value
+        source:
+          resource:
+            apiVersion: argoproj.io/v1alpha1
+            kind: Workflow
+            metadata:
+              generateName: "webhook-"
+            spec:
+              arguments:
+                parameters:
+                - name: message
+                  value: hello world
+                - name: delay
+                  value: "10"
+              workflowTemplateRef:
+                name: workflow-template-submittable
+  - template:
+      conditions: "calendar-dep"
+      name: "calendar-workflow-trigger"
+      k8s:
+        operation: create
+        parameters:
+        - src:
+            dependencyName: calendar-dep
+            dataKey: metadata.message
+          dest: spec.arguments.parameters.0.value
+        - src:
+            dependencyName: calendar-dep
+            dataKey: metadata.delay
+          dest: spec.arguments.parameters.1.value
+        source:
+          resource:
+            apiVersion: argoproj.io/v1alpha1
+            kind: Workflow
+            metadata:
+              generateName: "calendar-"
+            spec:
+              arguments:
+                parameters:
+                - name: message
+                  value: hello world
+                - name: delay
+                  value: "10"
+              workflowTemplateRef:
+                name: workflow-template-submittable
+---
+
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: workflow-template-submittable
+  namespace: argo-events
+spec:
+  ttlSecondsAfterFinished: 300
+  entrypoint: triangle
+  arguments:
+    parameters:
+      - name: message
+        value: hello world
+      - name: delay
+        value: "10"
+  templates:
+    - name: echo
+      inputs:
+        parameters:
+          - name: message
+      container:
+        image: docker/whalesay
+        command: [cowsay]
+        args: ["{{inputs.parameters.message}}"]
+    - name: idle
+      container:
+        image: ubuntu
+        command: ["/bin/bash", "-c"]
+        args:
+        - "echo {{workflow.parameters.delay}} && sleep {{workflow.parameters.delay}}"
+    - name: triangle
+      dag:
+        tasks:
+          - name: A
+            template: echo
+            arguments:
+              parameters:
+                - name: message
+                  value: "{{workflow.parameters.message}}"
+          - name: B
+            dependencies: [A]
+            template: idle
+          - name: C
+            dependencies: [A]
+            template: idle
