@@ -1,17 +1,17 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: mypod
+  name: busybox
   namespace: {{ template "helper.NAMESPACE" .}}
 spec:
   volumes:
-    - name: my-volume
+    - name: demo-volume
       persistentVolumeClaim:
-        claimName: my-pvc
+        claimName: demo-pvc
   containers:
-    - name: mycontainer
+    - name: main
       image: ubuntu
       command: ["sleep", "infinity"]
       volumeMounts:
         - mountPath: "/test-data"
-          name: my-volume
+          name: demo-volume

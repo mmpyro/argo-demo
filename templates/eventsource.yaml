@@ -27,18 +27,18 @@ spec:
     container:
       volumeMounts:
         - mountPath: /test-data
-          name: test-data
+          name: demo-volume
     volumes:
-      - name: test-data
+      - name: demo-volume
         persistentVolumeClaim:
-          claimName: my-pvc
+          claimName: demo-pvc
   file:
     example:
       watchPathConfig:
         # directory to watch
         directory: /test-data/
         # path to watch
-        path: x.txt
+        path: file.txt
       # supported types are: CREATE, WRITE, REMOVE, RENAME, CHMOD
       eventType: CREATE
 

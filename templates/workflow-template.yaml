@@ -30,15 +30,15 @@ spec:
     - name: triangle
       dag:
         tasks:
-          - name: A
+          - name: "database-export"
             template: echo
             arguments:
               parameters:
                 - name: message
                   value: "{{`{{workflow.parameters.message}}`}}"
-          - name: B
-            dependencies: [A]
+          - name: "database1-import"
+            dependencies: ["database-export"]
             template: idle
-          - name: C
-            dependencies: [A]
+          - name: "database2-import"
+            dependencies: ["database-export"]
             template: idle
