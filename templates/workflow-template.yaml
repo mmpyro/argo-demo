@@ -5,7 +5,7 @@ metadata:
   namespace: {{ template "helper.NAMESPACE" .}}
 spec:
   ttlSecondsAfterFinished: {{ .Values.workflow.ttlSecondsAfterFinished }}
-  entrypoint: triangle
+  entrypoint: database-setup
   arguments:
     parameters:
       - name: message
@@ -27,7 +27,7 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
         - "echo {{`{{workflow.parameters.delay}}`}} && sleep {{`{{workflow.parameters.delay}}`}}"
-    - name: triangle
+    - name: database-setup
       dag:
         tasks:
           - name: "database-export"
