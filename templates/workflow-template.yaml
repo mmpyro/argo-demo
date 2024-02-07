@@ -6,6 +6,7 @@ metadata:
 spec:
   ttlSecondsAfterFinished: {{ .Values.workflow.ttlSecondsAfterFinished }}
   entrypoint: database-setup
+  onExit: exit-handler 
   arguments:
     parameters:
       - name: message
@@ -27,6 +28,11 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
         - "echo {{`{{workflow.parameters.delay}}`}} && sleep {{`{{workflow.parameters.delay}}`}}"
+    - name: exit-handler
+      container:
+        image: alpine:latest
+        command: [sh, -c]
+        args: ["echo send e-mail: {{`{{workflow.name}}`}} {{`{{workflow.status}}`}} {{`{{workflow.duration}}`}}"]
     - name: database-setup
       dag:
         tasks:
@@ -42,3 +48,4 @@ spec:
           - name: "database2-import"
             dependencies: ["database-export"]
             template: idle
+
